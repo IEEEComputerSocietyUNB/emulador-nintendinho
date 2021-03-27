@@ -85,7 +85,20 @@ enum IO_REGISTER{
 
 // Memória interna do cartucho (PRG-ROM, CHR-ROM, SRAM e etc.)
 
-int8_t *cartridge_memory[];
+typedef struct Cartridge{
+    uint8_t N_PRG_ROM_PAG;
+    uint8_t N_CHR_ROM_PAG;
+    int8_t *PRG_ROM;
+    int8_t *CHR_ROM;
+    int8_t *SRAM;
+    int8_t *EXP_ROM;
+}cartridge;
+
+cartridge cartr;
+
+// Mapper 0
+
+int8_t* mapper_0(int8_t logical_address);
 
 // Referência para o mapeador utilizado no cartucho
 
@@ -93,13 +106,11 @@ typedef int8_t* Mapper(uint16_t logical_address);
 
 Mapper *mapper;
 
+mapper = mapper_0;
+
 // Mapeia os endereços acessados pela CPU para a estrutura correta de memória
 
 int8_t* cpu_memory_mapper(uint16_t logical_address);
-
-// Mapper 0
-
-int8_t* mapper_0(int8_t logical_address);
 
 // A CPU escreve na memória
 
