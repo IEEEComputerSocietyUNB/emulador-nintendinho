@@ -122,9 +122,7 @@ int8_t* mapper_0(uint16_t logical_address);
 
 typedef int8_t* Mapper(uint16_t logical_address);
 
-Mapper* mapper;
-
-mapper = mapper_0;
+Mapper* mapper = mapper_0;
 
 // Mapeia os endereços acessados pela CPU para a estrutura correta de memória
 
@@ -137,5 +135,7 @@ void cpu_write_memory(uint16_t logical_address, int8_t data);
 // A CPU lê da memória
 
 int8_t cpu_read_memory(uint16_t logical_address);
+
+
 
 #endif

@@ -1,5 +1,26 @@
 #include "cpu.h"
 
+// Macros
+#define concat_address(aa, bb) ((uint16_t)(aa) | (((uint16_t)(bb)) << 8))
+
+////////////////////////////////////////////
+/// Macros de modos de endereçamento
+////////////////////////////////////////////
+
+// Zero Page e Zero Page Indexed
+#define zero_page(aa, index) ((uint16_t)(((uint16_t)(aa) + (uint16_t)(index)) % 0x100))
+
+// Absolute e Absolute Indexed
+#define absolute(aa, bb, index) ((uint16_t)( concat_address(aa, bb) + index))
+
+// Indirect, Indexed Indirect e Indirect Indexed
+#define indirect(aa, bb, index1, index2) (concat_address(cpu_read_memory(concat_address((aa), (bb))\
+ + (index1)), cpu_read_memory(concat_address((aa), (bb)) + (index1) + 1)) + (index2)) 
+
+////////////////////////////////////////////
+/// Funções de mapeamento e acesso a memória
+////////////////////////////////////////////
+
 int8_t* mapper_0(uint16_t logical_address){
     int8_t* physical_address;
 
@@ -20,7 +41,7 @@ int8_t* mapper_0(uint16_t logical_address){
         }
     }
     // Memória do cartucho acessada pela PPU
-    else if(logical_address >= 0x0000 && logical_address < 0x2000){
+    else if((logical_address >= 0x0000) && (logical_address < 0x2000)){
         if(cartridge.N_CHR_ROM_PAG != 0){
             physical_address = &cartridge.CHR_ROM[logical_address - 0x0000];
         }
@@ -41,7 +62,7 @@ int8_t* cpu_memory_mapper(uint16_t logical_address){
         physical_address = &cpu_ram[logical_address - RAM];
     }
     // I/O Registers
-    else if(logical_address >= IO_REG && logical_address < 0x4020){
+    else if((logical_address >= IO_REG) && (logical_address < 0x4020)){
         physical_address = &io_reg[logical_address - IO_REG];
     }
     // Memória ROM/RAM do cartucho (0x4020 <= logical_address < 0x10000)
@@ -49,7 +70,7 @@ int8_t* cpu_memory_mapper(uint16_t logical_address){
         // Utiliza o mapeador configurado para o cartucho
         physical_address = (*mapper)(logical_address);
     }
-    
+
     return physical_address;
 
 }
@@ -74,3 +95,8 @@ int8_t cpu_read_memory(uint16_t logical_address){
     return data;
 
 }
+
+////////////////////////////////////////////
+/// Funções dos modos de endereçamento da memória
+////////////////////////////////////////////
+
