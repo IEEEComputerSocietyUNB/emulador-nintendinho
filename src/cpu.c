@@ -2,7 +2,7 @@
 
 int8_t* mapper_0(uint16_t logical_address){
     int8_t* physical_address;
-    
+
     // Memória do cartucho acessada pela CPU
     if(logical_address >= CPU_CART_MEM){
         // Expansion ROM
@@ -30,6 +30,7 @@ int8_t* mapper_0(uint16_t logical_address){
     }
 
     return physical_address; 
+
 }
 
 int8_t* cpu_memory_mapper(uint16_t logical_address){
@@ -48,5 +49,28 @@ int8_t* cpu_memory_mapper(uint16_t logical_address){
         // Utiliza o mapeador configurado para o cartucho
         physical_address = (*mapper)(logical_address);
     }
+    
     return physical_address;
+
+}
+
+void cpu_write_memory(uint16_t logical_address, int8_t data){
+    int8_t* physical_address;
+
+    physical_address = cpu_memory_mapper(logical_address);
+    *physical_address = data;
+    
+    return;
+
+}
+
+int8_t cpu_read_memory(uint16_t logical_address){
+    int8_t* physical_address;
+    int8_t data;
+
+    physical_address = cpu_memory_mapper(logical_address);
+    data = *physical_address;
+
+    return data;
+
 }

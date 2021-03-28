@@ -10,14 +10,14 @@
 
 enum CPU_MEM_MAP{
     RAM = 0x0000,           // Memória interna da CPU
-    IO_REG = 0x02000, // Registradores de comunicação outras partes do sistema
+    IO_REG = 0x02000,       // Registradores de comunicação outras partes do sistema
     CPU_CART_MEM = 0x4020   // Memória do cartucho acessada pela CPU
 };
 
 // Endereços de acesso à memória do cartucho acessada pela CPU
 
 enum CPU_CART_MEM_MAP{
-    EX_ROM = 0x4020,       // Expansão da memória ROM ou RAM do cartucho
+    EX_ROM = 0x4020,        // Expansão da memória ROM ou RAM do cartucho
     SRAM = 0x6000,          // Memória RAM comumente usada em saves
     PRG_ROM_LB = 0x8000,    // Banco inferior de memória de código do programa
     PRG_ROM_UB = 0xC000     // Banco superior de memória de código do programa
@@ -106,10 +106,10 @@ enum IO_REGISTER{
 typedef struct{
     uint8_t N_PRG_ROM_PAG;
     uint8_t N_CHR_ROM_PAG;
-    int8_t *PRG_ROM;
-    int8_t *CHR_ROM;
-    int8_t *SRAM;
-    int8_t *EX_ROM;
+    int8_t* PRG_ROM;
+    int8_t* CHR_ROM;
+    int8_t* SRAM;
+    int8_t* EX_ROM;
 }Cartridge;
 
 Cartridge cartridge;
@@ -122,7 +122,7 @@ int8_t* mapper_0(uint16_t logical_address);
 
 typedef int8_t* Mapper(uint16_t logical_address);
 
-Mapper *mapper;
+Mapper* mapper;
 
 mapper = mapper_0;
 
@@ -132,7 +132,7 @@ int8_t* cpu_memory_mapper(uint16_t logical_address);
 
 // A CPU escreve na memória
 
-int8_t cpu_write_memory(uint16_t logical_address, int8_t data);
+void cpu_write_memory(uint16_t logical_address, int8_t data);
 
 // A CPU lê da memória
 
