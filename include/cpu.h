@@ -6,21 +6,38 @@
 #define RAM_SIZE    2048
 #define IO_REG_SIZE 28
 
+// Endereço das regiões de memória acessadas pela CPU
+
+enum CPU_MEM_MAP{
+    RAM = 0x0000,           // Memória interna da CPU
+    IO_REG = 0x02000, // Registradores de comunicação outras partes do sistema
+    CPU_CART_MEM = 0x4020   // Memória do cartucho acessada pela CPU
+};
+
+// Endereços de acesso à memória do cartucho acessada pela CPU
+
+enum CPU_CART_MEM_MAP{
+    EX_ROM = 0x4020,       // Expansão da memória ROM ou RAM do cartucho
+    SRAM = 0x6000,          // Memória RAM comumente usada em saves
+    PRG_ROM_LB = 0x8000,    // Banco inferior de memória de código do programa
+    PRG_ROM_UB = 0xC000     // Banco superior de memória de código do programa
+};
+
 // Registradores da CPU
-
-int8_t cpu_reg[N_REG];
-
-// Program Counter
-
-uint16_t PC; 
 
 enum CPU_REGISTER{
     A,          // Accumulator
     X,          // Index Register X
     Y,          // Index Register Y
     S,          // Stack Pointer
-    P,          // Processor Status Register
+    P           // Processor Status Register
 };
+
+int8_t cpu_reg[N_REG];
+
+// Program Counter
+
+uint16_t PC; 
 
 // Processor Status Register (Flags)
 
@@ -36,13 +53,14 @@ enum P_FLAGS{
 };
 
 
+
 // Memória interna da CPU
 
-int8_t RAM[RAM_SIZE];
+int8_t cpu_ram[RAM_SIZE];
 
 // Registradores de entrada e saída
 
-int8_t IO_REG[IO_REG_SIZE];
+int8_t io_reg[IO_REG_SIZE];
 
 enum IO_REGISTER{
     PPUCTRL0       = 0x2000,  // PPU Control Register 1 (W)
@@ -83,22 +101,22 @@ enum IO_REGISTER{
     APUSOFTCLK     = 0x4017
 };
 
-// Memória interna do cartucho (PRG-ROM, CHR-ROM, SRAM e etc.)
+// Estrutura de memória do cartucho
 
-typedef struct Cartridge{
+typedef struct{
     uint8_t N_PRG_ROM_PAG;
     uint8_t N_CHR_ROM_PAG;
     int8_t *PRG_ROM;
     int8_t *CHR_ROM;
     int8_t *SRAM;
-    int8_t *EXP_ROM;
-}cartridge;
+    int8_t *EX_ROM;
+}Cartridge;
 
-cartridge cartr;
+Cartridge cartridge;
 
 // Mapper 0
 
-int8_t* mapper_0(int8_t logical_address);
+int8_t* mapper_0(uint16_t logical_address);
 
 // Referência para o mapeador utilizado no cartucho
 
