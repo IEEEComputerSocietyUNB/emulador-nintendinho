@@ -2,5 +2,6 @@
 #define _NES_H_
 #include <SDL2/SDL.h>
 #include <stdint.h>
+#include "cpu.h"
 
 #endif
