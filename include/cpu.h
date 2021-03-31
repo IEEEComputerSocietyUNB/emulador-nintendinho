@@ -153,18 +153,21 @@ enum ADDRESSING_MODE{
     IZY                 //Indirect Indexed
 };
 
+//NV_BDIZC
+
 enum UPDATE_FLAGS{
     xxxxxxxx = 0b00000000,
-    CZIDxxVN = 0b11110011,
-    xZxxxxxN = 0b01000001,
-    CZxxxxxN = 0b01000001,
-    CZxxxxVN = 0b11000011,
-    xZxxxxVN = 0b11000010,
-    Cxxxxxxx = 0b10000000,
-    xxIxxxxx = 0b00100000,
-    xxxDxxxx = 0b00010000,
-    xxxxBxxx = 0b00001000,
-    xxxxxxVx = 0b00000010
+    NVxxDIZC = 0b11001111,
+    NxxxxxZx = 0b10000010,
+    NxxxxxZC = 0b10000011,
+    NVxxxxZC = 0b11000011,
+    NVxxxxZx = 0b11000010,
+    xxxxxxxC = 0b00000001,
+    xxxxxIxx = 0b00000100,
+    xxxxDxxx = 0b00001000,
+    xxxBxxxx = 0b00010000,
+    xVxxxxxx = 0b01000000,
+
 };
 
 static const enum ADDRESSING_MODE address_mode_lookup[256] =
@@ -189,22 +192,22 @@ static const enum ADDRESSING_MODE address_mode_lookup[256] =
 
 static const enum UPDATE_FLAGS update_flags_lookup[256] =
 {   // x0        x1        x2        x3        x4        x5        x6        x7        x8        x9        xA        xB        xC        xD        xE        xF
-/*0x*/ xxxxBxxx, xZxxxxxN, xxxxxxxx, xxxxxxxx, xxxxxxxx, xZxxxxxN, CZxxxxxN, xxxxxxxx, xxxxxxxx, xZxxxxxN, CZxxxxxN, CZxxxxxN, xxxxxxxx, xZxxxxxN, CZxxxxxN, xxxxxxxx,
-/*1x*/ xxxxxxxx, xZxxxxxN, xxxxxxxx, xxxxxxxx, xxxxxxxx, xZxxxxxN, CZxxxxxN, xxxxxxxx, Cxxxxxxx, xZxxxxxN, xxxxxxxx, xxxxxxxx, xxxxxxxx, xZxxxxxN, CZxxxxxN, xxxxxxxx,
-/*2x*/ xxxxxxxx, xZxxxxxN, xxxxxxxx, xxxxxxxx, xZxxxxVN, xZxxxxxN, CZxxxxxN, xxxxxxxx, CZIDxxVN, xZxxxxxN, CZxxxxxN, CZxxxxxN, xZxxxxVN, xZxxxxxN, CZxxxxxN, xxxxxxxx,
-/*3x*/ xxxxxxxx, xZxxxxxN, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, CZxxxxxN, xxxxxxxx, Cxxxxxxx, xZxxxxxN, xxxxxxxx, xxxxxxxx, xxxxxxxx, xZxxxxxN, CZxxxxxN, xxxxxxxx,
-/*4x*/ CZIDxxVN, xZxxxxxN, xxxxxxxx, xxxxxxxx, xxxxxxxx, xZxxxxxN, CZxxxxxN, xxxxxxxx, xxxxxxxx, xZxxxxxN, CZxxxxxN, CZxxxxxN, xxxxxxxx, xZxxxxxN, CZxxxxxN, xxxxxxxx,
-/*5x*/ xxxxxxxx, xZxxxxxN, xxxxxxxx, xxxxxxxx, xxxxxxxx, xZxxxxxN, xxxxxxxx, xxxxxxxx, xxIxxxxx, xZxxxxxN, xxxxxxxx, xxxxxxxx, xxxxxxxx, xZxxxxxN, CZxxxxxN, xxxxxxxx,
-/*6x*/ xxxxxxxx, CZxxxxVN, xxxxxxxx, xxxxxxxx, xxxxxxxx, CZxxxxVN, CZxxxxxN, xxxxxxxx, xZxxxxxN, CZxxxxVN, CZxxxxxN, CZxxxxVN, xxxxxxxx, CZxxxxVN, CZxxxxxN, xxxxxxxx,
-/*7x*/ xxxxxxxx, CZxxxxVN, xxxxxxxx, xxxxxxxx, xxxxxxxx, CZxxxxVN, CZxxxxxN, xxxxxxxx, xxIxxxxx, CZxxxxVN, xxxxxxxx, xxxxxxxx, xxxxxxxx, CZxxxxVN, CZxxxxxN, xxxxxxxx,
-/*8x*/ xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xZxxxxxN, xxxxxxxx, xZxxxxxN, xZxxxxxN, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx,                                                                                                        
-/*9x*/ xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xZxxxxxN, xxxxxxxx, xZxxxxxN, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx,
-/*Ax*/ xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN,
-/*Bx*/ xxxxxxxx, xZxxxxxN, xxxxxxxx, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xxxxxxVx, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xZxxxxxN, xxxxxxxx,
-/*Cx*/ CZxxxxxN, CZxxxxxN, xxxxxxxx, xxxxxxxx, CZxxxxxN, CZxxxxxN, xZxxxxxN, xxxxxxxx, xxxxxxxx, CZxxxxxN, xZxxxxxN, CZxxxxxN, CZxxxxxN, CZxxxxxN, xZxxxxxN, xxxxxxxx,
-/*Dx*/ xxxxxxxx, CZxxxxxN, xxxxxxxx, xxxxxxxx, xxxxxxxx, CZxxxxxN, xZxxxxxN, xxxxxxxx, xxxDxxxx, CZxxxxxN, xxxxxxxx, xxxxxxxx, xxxxxxxx, CZxxxxxN, xZxxxxxN, xxxxxxxx,
-/*Ex*/ CZxxxxxN, CZxxxxVN, xxxxxxxx, xxxxxxxx, CZxxxxxN, CZxxxxVN, xxxxxxxx, xxxxxxxx, xxxxxxxx, CZxxxxVN, xxxxxxxx, CZxxxxVN, CZxxxxxN, CZxxxxVN, xxxxxxxx, xxxxxxxx,
-/*Fx*/ xxxxxxxx, CZxxxxVN, xxxxxxxx, xxxxxxxx, xxxxxxxx, CZxxxxVN, xxxxxxxx, xxxxxxxx, xxxDxxxx, CZxxxxVN, xxxxxxxx, xZxxxxxN, xxxxxxxx, CZxxxxVN, xxxxxxxx, xxxxxxxx
+/*0x*/ xxxBxxxx, NxxxxxZx, xxxxxxxx, xxxxxxxx, xxxxxxxx, NxxxxxZx, NxxxxxZC, xxxxxxxx, xxxxxxxx, NxxxxxZx, NxxxxxZC, NxxxxxZC, xxxxxxxx, NxxxxxZx, NxxxxxZC, xxxxxxxx,
+/*1x*/ xxxxxxxx, NxxxxxZx, xxxxxxxx, xxxxxxxx, xxxxxxxx, NxxxxxZx, NxxxxxZC, xxxxxxxx, xxxxxxxC, NxxxxxZx, xxxxxxxx, xxxxxxxx, xxxxxxxx, NxxxxxZx, NxxxxxZC, xxxxxxxx,
+/*2x*/ xxxxxxxx, NxxxxxZx, xxxxxxxx, xxxxxxxx, NVxxxxZx, NxxxxxZx, NxxxxxZC, xxxxxxxx, NVxxDIZC, NxxxxxZx, NxxxxxZC, NxxxxxZC, NVxxxxZx, NxxxxxZx, NxxxxxZC, xxxxxxxx,
+/*3x*/ xxxxxxxx, NxxxxxZx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, NxxxxxZC, xxxxxxxx, xxxxxxxC, NxxxxxZx, xxxxxxxx, xxxxxxxx, xxxxxxxx, NxxxxxZx, NxxxxxZC, xxxxxxxx,
+/*4x*/ NVxxDIZC, NxxxxxZx, xxxxxxxx, xxxxxxxx, xxxxxxxx, NxxxxxZx, NxxxxxZC, xxxxxxxx, xxxxxxxx, NxxxxxZx, NxxxxxZC, NxxxxxZC, xxxxxxxx, NxxxxxZx, NxxxxxZC, xxxxxxxx,
+/*5x*/ xxxxxxxx, NxxxxxZx, xxxxxxxx, xxxxxxxx, xxxxxxxx, NxxxxxZx, xxxxxxxx, xxxxxxxx, xxxxxIxx, NxxxxxZx, xxxxxxxx, xxxxxxxx, xxxxxxxx, NxxxxxZx, NxxxxxZC, xxxxxxxx,
+/*6x*/ xxxxxxxx, NVxxxxZC, xxxxxxxx, xxxxxxxx, xxxxxxxx, NVxxxxZC, NxxxxxZC, xxxxxxxx, NxxxxxZx, NVxxxxZC, NxxxxxZC, NVxxxxZC, xxxxxxxx, NVxxxxZC, NxxxxxZC, xxxxxxxx,
+/*7x*/ xxxxxxxx, NVxxxxZC, xxxxxxxx, xxxxxxxx, xxxxxxxx, NVxxxxZC, NxxxxxZC, xxxxxxxx, xxxxxIxx, NVxxxxZC, xxxxxxxx, xxxxxxxx, xxxxxxxx, NVxxxxZC, NxxxxxZC, xxxxxxxx,
+/*8x*/ xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, NxxxxxZx, xxxxxxxx, NxxxxxZx, NxxxxxZx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx,                                                                                                        
+/*9x*/ xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, NxxxxxZx, xxxxxxxx, NxxxxxZx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx, xxxxxxxx,
+/*Ax*/ NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx,
+/*Bx*/ xxxxxxxx, NxxxxxZx, xxxxxxxx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, xVxxxxxx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, NxxxxxZx, xxxxxxxx,
+/*Cx*/ NxxxxxZC, NxxxxxZC, xxxxxxxx, xxxxxxxx, NxxxxxZC, NxxxxxZC, NxxxxxZx, xxxxxxxx, xxxxxxxx, NxxxxxZC, NxxxxxZx, NxxxxxZC, NxxxxxZC, NxxxxxZC, NxxxxxZx, xxxxxxxx,
+/*Dx*/ xxxxxxxx, NxxxxxZC, xxxxxxxx, xxxxxxxx, xxxxxxxx, NxxxxxZC, NxxxxxZx, xxxxxxxx, xxxxDxxx, NxxxxxZC, xxxxxxxx, xxxxxxxx, xxxxxxxx, NxxxxxZC, NxxxxxZx, xxxxxxxx,
+/*Ex*/ NxxxxxZC, NVxxxxZC, xxxxxxxx, xxxxxxxx, NxxxxxZC, NVxxxxZC, xxxxxxxx, xxxxxxxx, xxxxxxxx, NVxxxxZC, xxxxxxxx, NVxxxxZC, NxxxxxZC, NVxxxxZC, xxxxxxxx, xxxxxxxx,
+/*Fx*/ xxxxxxxx, NVxxxxZC, xxxxxxxx, xxxxxxxx, xxxxxxxx, NVxxxxZC, xxxxxxxx, xxxxxxxx, xxxxDxxx, NVxxxxZC, xxxxxxxx, NxxxxxZx, xxxxxxxx, NVxxxxZC, xxxxxxxx, xxxxxxxx
 };
 
 static const int clock_cycle_lookup[256] =
@@ -246,9 +249,6 @@ static const int page_breaking_lookup[256] =
 /*Ex*/ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 /*Fx*/ 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0 
 };
-
-//CZIDB_VN
-
 
 // Opcode
 

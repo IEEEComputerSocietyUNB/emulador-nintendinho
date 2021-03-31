@@ -102,6 +102,55 @@ int8_t cpu_read_memory(uint16_t logical_address){
 
 }
 
+// Endereçamento de dinheiro
+
+uint16_t cpu_addressing(uint8_t opcode){
+    uint8_t addressing_mode = address_mode_lookup[opcode];
+    uint16_t addr, msb_addr, lsb_addr;
+
+    switch (addressing_mode){
+        case IMM:
+            addr = PC++;
+            return addr;
+        case ZP:
+            addr = PC++;
+            return zero_page(addr, 0);
+        case ZPX:
+            addr = PC++;
+            return zero_page(addr, cpu_reg[X]);
+        case ZPY:
+            addr = PC++;
+            return zero_page(addr, cpu_reg[Y]);
+        case ABS:
+            lsb_addr = PC++;
+            msb_addr = PC++;
+            return absolute(lsb_addr, msb_addr, 00);
+        case ABX:
+            lsb_addr = PC++;
+            msb_addr = PC++;
+            return absolute(lsb_addr, msb_addr, cpu_reg[X]);
+        case ABY:
+            lsb_addr = PC++;
+            msb_addr = PC++;
+            return absolute(lsb_addr, msb_addr, cpu_reg[Y]);
+        case IND:
+            lsb_addr = PC++;
+            msb_addr = PC++;
+            return indirect(lsb_addr, msb_addr, 0, 0);
+        case IZX:
+            lsb_addr = PC++;
+            msb_addr = PC++;
+            return indirect(lsb_addr, 0, cpu_reg[X], 0);
+        case IZY:
+            lsb_addr = PC++;
+            msb_addr = PC++;
+            return indirect(lsb_addr, 0, 0, cpu_reg[Y]);
+        default:
+            return 0;
+    }
+}
+
+
 ////////////////////////////////////////////
 /// 
 ////////////////////////////////////////////
