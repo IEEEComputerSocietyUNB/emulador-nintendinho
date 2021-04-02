@@ -138,7 +138,7 @@ uint8_t cpu_check_page_breaks(uint8_t lsb_addr, uint8_t msb_addr, int8_t index){
 // Incrementa o número de ciclos de clock de algumas instruções caso
 // a indexação ultrapasse o limíte da página
 
-uint16_t cpu_addressing(uint8_t opcode, uint8_t cpu_clock_cycle){
+int16_t cpu_addressing(uint8_t opcode, uint8_t cpu_clock_cycle){
     uint8_t addressing_mode = address_mode_lookup[opcode];
     uint8_t addr, msb_addr, lsb_addr;
     
@@ -341,15 +341,130 @@ void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operan
 
 
 uint8_t cpu_fetch_decode_and_execute(){
-    int8_t opcode; 
+    int8_t opcode, imm, data;
+    uint16_t addr;
     uint8_t cpu_clock_cycles;
 
     opcode = cpu_read_memory(cpu.pc++);
     cpu_clock_cycles = clock_cycle_lookup[opcode];
 
     switch(opcode){
-        case 0x00:
+        /////////////////////////////////////////////////////////////
+        /// Instruções de transferência entre memória e registradores
+        /////////////////////////////////////////////////////////////
+
+        // Registrador/Imediato para Registrador
+        
+        // TAY 
+        case 0xA8: 
+            cpu.reg[Y] = cpu.reg[A];
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[A]);
             break;
+        // TAX 
+        case 0xAA: 
+            cpu.reg[X] = cpu.reg[A];
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[A]);
+            break;
+        // TSX 
+        case 0xBA:
+            cpu.reg[X] = cpu.reg[S];
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[S]);            
+            break;
+        // TYA 
+        case 0x98: 
+            cpu.reg[A] = cpu.reg[Y];
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[Y]);        
+            break;
+        // TXA
+        case 0x8A: 
+            cpu.reg[A] = cpu.reg[X];
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[X]);        
+            break;
+        // TXS
+        case 0x9A: 
+            cpu.reg[S] = cpu.reg[X];
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[X]);
+            break;
+        // LDA
+        case 0xA9: 
+            cpu.reg[A] = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[A]);
+            break;
+        // LDX
+        case 0xA2: 
+            cpu.reg[X] = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[X]);
+            break;
+        // LDY
+        case 0xA0:
+            cpu.reg[Y] = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[Y]);
+            break;
+
+        // Carrega da memória para os registradores
+
+        // LDA
+        case 0xA5: case 0xB5: case 0xAD: case 0xBD: case 0xB9: case 0xA1: case 0xB1:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu.reg[A] = cpu_read_memory(addr);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[A]);
+            break;
+        // LDX
+        case 0xA6: case 0xB6: case 0xAE: case 0xBE:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu.reg[X] =  cpu_read_memory(addr);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[X]);        
+            break;
+        // LDY
+        case 0xA4: case 0xB4: case 0xAC: case 0xBC:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu.reg[Y] =  cpu_read_memory(addr);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[Y]);
+            break;
+
+        // Armazena o conteúdo do registrador na memória
+
+        // STA
+        case 0x85: case 0x95: case 0x8D: case 0x9D: case 0x99: case 0x81: case 0x91:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu_write_memory(cpu.reg[A]);
+            break;
+        // STX
+        case 0x86: case 0x96: case 0x8E:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu_write_memory(cpu.reg[X]);
+            break;        
+        // STY    
+        case 0x84: case 0x94: case 0x8C:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu_write_memory(addr, cpu.reg[Y]);
+            break;
+
+        // Push/Pull
+
+        // PHA
+        case 0x48: 
+            cpu_write_memory(cpu.reg[S] + 0x0100, cpu.reg[A]);
+            cpu.reg[S]--;
+            break;
+        // PHP    
+        case 0x08:
+            cpu_write_memory(cpu.reg[S] + 0x0100, cpu.reg[P]);
+            cpu.reg[S]--;
+            break;
+        // PLA 
+        case 0x68:
+            cpu.reg[S]++;
+            cpu.reg[A] = cpu_read_memory(cpu.reg[S] + 0x0100);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[A]);
+            break;
+        // PLP
+        case 0x28:
+            cpu.reg[S]++;
+            cpu.reg[P] = cpu_read_memory(cpu.reg[S] + 0x0100)\
+             | 0x20; // Protege as flags que não podem ser alteradas setando elas como "1" 
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[P]);
+            break;        
         default:
             break;
     }

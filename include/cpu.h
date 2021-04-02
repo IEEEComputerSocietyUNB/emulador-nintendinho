@@ -253,7 +253,7 @@ typedef struct{
 
 CPU cpu;
 
-uint16_t cpu_addressing(uint8_t opcode, uint8_t cpu_clock_cycles);
+int16_t cpu_addressing(uint8_t opcode, uint8_t cpu_clock_cycles);
 
 void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operand, int16_t result);
 
