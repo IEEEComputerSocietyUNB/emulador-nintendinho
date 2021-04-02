@@ -194,9 +194,9 @@ int16_t cpu_addressing(uint8_t opcode, uint8_t cpu_clock_cycle){
     }
 }
 
-////////////////////////////////////////////
+///////////////////////////////////////////////////////
 /// Funções para interpretação e execução de instruções
-////////////////////////////////////////////
+///////////////////////////////////////////////////////
 
 // Atualização de flags
 
@@ -341,7 +341,8 @@ void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operan
 
 
 uint8_t cpu_fetch_decode_and_execute(){
-    int8_t opcode, imm, data;
+    int8_t opcode, first_operand, second_operand, data, imm;
+    int16_t result;
     uint16_t addr;
     uint8_t cpu_clock_cycles;
 
@@ -427,12 +428,12 @@ uint8_t cpu_fetch_decode_and_execute(){
         // STA
         case 0x85: case 0x95: case 0x8D: case 0x9D: case 0x99: case 0x81: case 0x91:
             addr = cpu_addressing(opcode, cpu_clock_cycles);
-            cpu_write_memory(cpu.reg[A]);
+            cpu_write_memory(addr, cpu.reg[A]);
             break;
         // STX
         case 0x86: case 0x96: case 0x8E:
             addr = cpu_addressing(opcode, cpu_clock_cycles);
-            cpu_write_memory(cpu.reg[X]);
+            cpu_write_memory(addr, cpu.reg[X]);
             break;        
         // STY    
         case 0x84: case 0x94: case 0x8C:
@@ -464,7 +465,143 @@ uint8_t cpu_fetch_decode_and_execute(){
             cpu.reg[P] = cpu_read_memory(cpu.reg[S] + 0x0100)\
              | 0x20; // Protege as flags que não podem ser alteradas setando elas como "1" 
             cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[P]);
-            break;        
+            break;       
+
+        /////////////////////////////////////////////////
+        /// Instruções de operações lógicas e aritméticas
+        /////////////////////////////////////////////////
+
+        // Adiciona ao acumulador o conteúdo da memória com carry
+        // ADC
+        case 0x69:
+            first_operand = cpu.reg[A];
+            second_operand = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu.reg[A] += bit_test(cpu.reg[P], C) + second_operand;
+            cpu_update_flags(opcode, first_operand, second_operand, cpu.reg[A]);
+            break;
+        case 0x65: case 0x75: case 0x6D: case 0x7D: case 0x79: case 0x61: case 0x71: 
+            first_operand = cpu.reg[A];
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            second_operand = cpu_read_memory(addr);
+            cpu.reg[A] += bit_test(cpu.reg[P], C) + second_operand;
+            cpu_update_flags(opcode, first_operand, second_operand, cpu.reg[A]);            
+            break;  
+        // Subtrai conteúdo da memória do acumulador com borrow    
+        // SBC
+        case 0xE9:
+            first_operand = cpu.reg[A];
+            second_operand = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu.reg[A] += bit_test(cpu.reg[P], C) - second_operand;
+            cpu_update_flags(opcode, first_operand, second_operand, cpu.reg[A]);
+            break;
+        case 0xE5: case 0xF5: case 0xED: case 0xFD: case 0xF9: case 0xE1: case 0xF1:
+            first_operand = cpu.reg[A];
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            second_operand = cpu_read_memory(addr);
+            cpu.reg[A] += bit_test(cpu.reg[P], C) - second_operand;
+            cpu_update_flags(opcode, first_operand, second_operand, cpu.reg[A]);
+            break;
+        // AND lógico entre memória e acumulador
+        // AND
+        case 0x29:  
+            cpu.reg[A] &= cpu_addressing(opcode, cpu_clock_cycles);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[A]);
+            break;
+        case 0x25: case 0x35: case 0x2D: case 0x3D: case 0x39: case 0x21: case 0x31:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu.reg[A] &= cpu_read_memory(addr);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[A]);
+            break;
+        // OR exclusivo entre memória e acumulador
+        // EOR    
+        case 0x49:
+            cpu.reg[A] ^= cpu_addressing(opcode, cpu_clock_cycles);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[A]);
+            break;             
+        case 0x45: case 0x55: case 0x4D: case 0x5D: case 0x59: case 0x41: case 0x51:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu.reg[A] ^= cpu_read_memory(addr);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[A]);
+            break;
+        // OR lógico entre memória e acumulador
+        // ORA
+        case 0x09:
+            cpu.reg[A] |= cpu_addressing(opcode, cpu_clock_cycles);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[A]);        
+            break;
+        case 0x05: case 0x15: case 0x0D: case 0x1D: case 0x19: case 0x01: case 0x11:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu.reg[A] |= cpu_read_memory(addr);
+            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[A]);
+            break;
+        // Comparação
+        // CMP
+        case 0xC9:
+            first_operand = cpu.reg[A];
+            second_operand = cpu_addressing(opcode, cpu_clock_cycles);
+            result = cpu.reg[A] - second_operand;
+            cpu_update_flags(opcode, first_operand, second_operand, result);        
+            break;
+        case 0xC5: case: 0xD5: case: 0xCD: case: 0xDD: case: 0xD9: case: 0xC1: case: 0xD1:
+            first_operand = cpu.reg[A];
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            second_operand = cpu_read_memory(addr);
+            result = cpu.reg[A] - second_operand;
+            cpu_update_flags(opcode, first_operand, second_operand, result);            
+            break;
+        // CPX
+        case 0xE0:
+            first_operand = cpu.reg[X];
+            second_operand = cpu_addressing(opcode, cpu_clock_cycles);
+            result = cpu.reg[X] - second_operand;
+            cpu_update_flags(opcode, first_operand, second_operand, result);        
+            break;
+        case 0xE4: 0xEC:
+            first_operand = cpu.reg[X];
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            second_operand = cpu_read_memory(addr);
+            result = cpu.reg[X] - second_operand;
+            cpu_update_flags(opcode, first_operand, second_operand, result);         
+            break;
+        // CPY
+        case 0xC0:
+            first_operand = cpu.reg[Y];
+            second_operand = cpu_addressing(opcode, cpu_clock_cycles);
+            result = cpu.reg[Y] - second_operand;
+            cpu_update_flags(opcode, first_operand, second_operand, result);        
+            break;
+        case 0xC4: 0xCC:
+            first_operand = cpu.reg[Y];
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            second_operand = cpu_read_memory(addr);
+            result = cpu.reg[Y] - second_operand;
+            cpu_update_flags(opcode, first_operand, second_operand, result);         
+            break;
+        // Bit Test
+        // BIT
+        case 0x24: 0x2C:
+            first_operand = cpu.reg[A];
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            second_operand = cpu_read_memory(addr);
+            cpu_update_flags(opcode, first_operand, second_operand, 0x00);
+            break;
+        // Incremento de um
+        // INC
+        case 0xE6: case 0xF6: case 0xEE: case 0xFE: case 0xE8: case 0xC8:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            data = cpu_read_memory(addr);
+            result = data + 1;
+            cpu_write_memory(addr, result);   
+            cpu_update_flags(opcode, 0x00, 0x00, result); 
+            break;
+        // Decremento de um
+        // DEC
+        case 0xC6: case 0xD6: case 0xCE: case 0xDE: case 0xCA: case 0x88:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            data = cpu_read_memory(addr);
+            result = data - 1;
+            cpu_write_memory(addr, result);   
+            cpu_update_flags(opcode, 0x00, 0x00, result);         
         default:
             break;
     }
