@@ -253,16 +253,10 @@ typedef struct{
 
 CPU cpu;
 
-uint8_t cpu_clock;
-uint8_t opcode;
-uint16_t addr;
-uint8_t operand;
-int8_t LSB_operand;
-int8_t MSB_operand;
-uint8_t instruction_len;
-
-uint16_t cpu_addressing(uint8_t opcode);
+uint16_t cpu_addressing(uint8_t opcode, uint8_t cpu_clock_cycles);
 
 void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operand, int16_t result);
+
+uint8_t cpu_fetch_and_execute()
 
 #endif

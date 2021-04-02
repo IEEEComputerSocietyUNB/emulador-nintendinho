@@ -125,12 +125,26 @@ int8_t cpu_read_memory(uint16_t logical_address){
     return data;
 
 }
+// Verifica se a indexação ultrapassa o limíte da página
+
+uint8_t cpu_check_page_breaks(uint8_t lsb_addr, uint8_t msb_addr, int8_t index){
+    if(((concat_address(lsb_addr, msb_addr) + index) & 0xFF00) != (concat_address(lsb_addr, msb_addr) & 0xFF00)) 
+        return 1;
+    else
+        return 0;
+}
 
 // Endereçamento de memória
+// Incrementa o número de ciclos de clock de algumas instruções caso
+// a indexação ultrapasse o limíte da página
 
-uint16_t cpu_addressing(uint8_t opcode){
+uint16_t cpu_addressing(uint8_t opcode, uint8_t cpu_clock_cycle){
     uint8_t addressing_mode = address_mode_lookup[opcode];
     uint8_t addr, msb_addr, lsb_addr;
+    
+    // Verifica se é uma instrução que tem um ciclo a mais de clock
+    // quando a indexação ultrapassa o limite da página
+    uint8_t check_page_breaks = page_breaking_lookup[opcode];
 
     switch (addressing_mode){
         case IMM:
@@ -152,10 +166,14 @@ uint16_t cpu_addressing(uint8_t opcode){
         case ABX:
             lsb_addr = cpu.pc++;
             msb_addr = cpu.pc++;
+            if(check_page_breaks)
+                cpu_clock_cycle += cpu_check_page_breaks(lsb_addr, msb_addr, cpu.reg[X]);
             return absolute(lsb_addr, msb_addr, cpu.reg[X]);
         case ABY:
             lsb_addr = cpu.pc++;
             msb_addr = cpu.pc++;
+            if(check_page_breaks)
+                cpu_clock_cycle += cpu_check_page_breaks(lsb_addr, msb_addr, cpu.reg[Y]);            
             return absolute(lsb_addr, msb_addr, cpu.reg[Y]);
         case IND:
             lsb_addr = cpu.pc++;
@@ -168,12 +186,17 @@ uint16_t cpu_addressing(uint8_t opcode){
         case IZY:
             lsb_addr = cpu.pc++;
             msb_addr = cpu.pc++;
+            if(check_page_breaks)
+                cpu_clock_cycle += cpu_check_page_breaks(lsb_addr, msb_addr, cpu.reg[Y]);            
             return indirect(lsb_addr, 0, 0, cpu.reg[Y]);
         default:
             return 0;
     }
 }
 
+////////////////////////////////////////////
+/// Funções para interpretação e execução de instruções
+////////////////////////////////////////////
 
 // Atualização de flags
 
@@ -184,12 +207,12 @@ void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operan
         // Limpa a flag N
         bit_clear(cpu.reg[P], N);
         switch(opcode){
-            // Bit Test
+            // BIT - Bit Test
             case 0x24: case 0x2C:
                 if(bit_test(second_operand, BIT7)) 
                     bit_set(cpu.reg[P], N);
                 break;                        
-            // Shift Right Logical    
+            // SHR - Shift Right Logical    
             case 0x4A: case 0x46: case 0x56:  case 0x4E:  case 0x5E: 
                 break;
             default:
@@ -205,7 +228,7 @@ void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operan
             // CLV - Clear Overflow Flag
             case 0xB8:
                 break;
-            // Bit Test
+            // BIT - Bit Test
             case 0x24: case 0x2C:
                 if(bit_test(second_operand, BIT6))
                     bit_set(cpu.reg[P], V);
@@ -220,7 +243,7 @@ void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operan
         // Limpa a flag B
         bit_clear(cpu.reg[P], B);        
         switch(opcode){
-            
+            // BRK - Force break
             case 0x00:
                 bit_set(cpu.reg[P], B);
                 break;
@@ -262,7 +285,7 @@ void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operan
         // Limpa a flag Z
         bit_clear(cpu.reg[P], Z);        
         switch(opcode){
-            // Bit Test
+            // BIT - Bit Test
             case 0x24: case 0x2C:
                 if((first_operand & second_operand) == 0x00)
                     bit_set(cpu.reg[P], Z);
@@ -277,36 +300,37 @@ void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operan
         // Limpa a flag C
         bit_clear(cpu.reg[P], C);        
         switch(opcode){
-            case 18:
+            case 0x18:
             // STC - Set carry flag
                 bit_set(cpu.reg[P], C);    
                 break;
             // CLC - Clear carry flag    
-            case 38:
+            case 0x38:
                 break;
-            // Shift Left Logical/Arithmetic
+            // ASL - Shift Left Logical/Arithmetic
             case 0x0A: case 0x06: case 0x16: case 0x0E: case 0x1E: 
-            // Rotate Left through Carry
+            // ROL - Rotate Left through Carry
             case 0x2A: case 0x26: case 0x36: case 0x2E: case 0x3E:
                 if(bit_test(result, BIT7))
                     bit_set(cpu.reg[P], C);
                 break;
-            // Shift Right Logical    
+            // LSR - Shift Right Logical    
             case 0x4A: case 0x46: case 0x56: case 0x4E: case 0x5E:
-            // Rotate Right through Carry
+            // ROR - Rotate Right through Carry
             case 0x6A: case 0x66: case 0x76: case 0x6E: case 0x7E:    
                 if(bit_test(result, BIT0))
-                    bit_set(cpu.reg[p], C);
+                    bit_set(cpu.reg[P], C);
                 break;
-            // Subtract memory from accumulator with borrow
+            // SBC - Subtract memory from accumulator with borrow
             case 0xE9: case 0xE5: case 0xF5: case 0xED: case 0xFD: case 0xF9: case 0xE1: case 0xF1:
-            // Compare
+            // CMP - Compare
             case 0xC9: case 0xC5: case 0xD5: case 0xCD: case 0xDD: case 0xD9: case 0xC1: case 0xD1:
             case 0xE0: case 0xE4: case 0xEC: case 0xC0: case 0xC4: case 0xCC:
                 if( first_operand >= second_operand)
                     bit_set(cpu.reg[P], C);
                 break;
             default:
+                // ADC - Add memory to accumulator with carry
                 if(bit_test(result, BIT8))
                     bit_set(cpu.reg[P], C);
                 break;
@@ -315,11 +339,13 @@ void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operan
 }
 
 
-////////////////////////////////////////////
-/// 
-////////////////////////////////////////////
 
-uint8_t cpu_fetch_and_execute(){
+uint8_t cpu_fetch_decode_and_execute(){
+    int8_t opcode; 
+    uint8_t cpu_clock_cycles;
+
+    opcode = cpu_read_memory(cpu.pc++);
+    cpu_clock_cycles = clock_cycle_lookup[opcode];
 
     switch(opcode){
         case 0x00:
@@ -328,5 +354,5 @@ uint8_t cpu_fetch_and_execute(){
             break;
     }
 
-    return cpu_clock;
+    return cpu_clock_cycles;
 }
