@@ -1,7 +1,31 @@
 #include "cpu.h"
 
-// Macros
+enum BIT_POS{
+    BIT0,
+    BIT1,
+    BIT2,
+    BIT3,
+    BIT4,
+    BIT5,
+    BIT6,
+    BIT7,
+    BIT8,
+};
+
+// Macros úteis
 #define concat_address(aa, bb) ((uint16_t)(aa) | (((uint16_t)(bb)) << 8))
+
+#define bit_mask(bit_index) ((0x0001) << (bit_index))
+
+#define nibble_mask(nib_index) ((0x000F) << ((nib_index) * (4)))
+
+#define byte_mask(byt_index) ((0x00FF) << ((byt_index) * (8)))
+
+#define bit_test(word, bit_index) ((word) & ((0x01) << (bit_index)))
+
+#define bit_set(word, bit_index) ((word) | ((0x01) << (bit_index)))
+
+#define bit_clear(word, bit_index) ((word) & ((~(0x01)) << (bit_index)))
 
 ////////////////////////////////////////////
 /// Macros de modos de endereçamento
@@ -102,51 +126,191 @@ int8_t cpu_read_memory(uint16_t logical_address){
 
 }
 
-// Endereçamento de dinheiro
+// Endereçamento de memória
 
 uint16_t cpu_addressing(uint8_t opcode){
     uint8_t addressing_mode = address_mode_lookup[opcode];
-    uint16_t addr, msb_addr, lsb_addr;
+    uint8_t addr, msb_addr, lsb_addr;
 
     switch (addressing_mode){
         case IMM:
-            addr = PC++;
+            addr = cpu.pc++;
             return addr;
         case ZP:
-            addr = PC++;
+            addr = cpu.pc++;
             return zero_page(addr, 0);
         case ZPX:
-            addr = PC++;
-            return zero_page(addr, cpu_reg[X]);
+            addr = cpu.pc++;
+            return zero_page(addr, cpu.reg[X]);
         case ZPY:
-            addr = PC++;
-            return zero_page(addr, cpu_reg[Y]);
+            addr = cpu.pc++;
+            return zero_page(addr, cpu.reg[Y]);
         case ABS:
-            lsb_addr = PC++;
-            msb_addr = PC++;
+            lsb_addr = cpu.pc++;
+            msb_addr = cpu.pc++;
             return absolute(lsb_addr, msb_addr, 00);
         case ABX:
-            lsb_addr = PC++;
-            msb_addr = PC++;
-            return absolute(lsb_addr, msb_addr, cpu_reg[X]);
+            lsb_addr = cpu.pc++;
+            msb_addr = cpu.pc++;
+            return absolute(lsb_addr, msb_addr, cpu.reg[X]);
         case ABY:
-            lsb_addr = PC++;
-            msb_addr = PC++;
-            return absolute(lsb_addr, msb_addr, cpu_reg[Y]);
+            lsb_addr = cpu.pc++;
+            msb_addr = cpu.pc++;
+            return absolute(lsb_addr, msb_addr, cpu.reg[Y]);
         case IND:
-            lsb_addr = PC++;
-            msb_addr = PC++;
+            lsb_addr = cpu.pc++;
+            msb_addr = cpu.pc++;
             return indirect(lsb_addr, msb_addr, 0, 0);
         case IZX:
-            lsb_addr = PC++;
-            msb_addr = PC++;
-            return indirect(lsb_addr, 0, cpu_reg[X], 0);
+            lsb_addr = cpu.pc++;
+            msb_addr = cpu.pc++;
+            return indirect(lsb_addr, 0, cpu.reg[X], 0);
         case IZY:
-            lsb_addr = PC++;
-            msb_addr = PC++;
-            return indirect(lsb_addr, 0, 0, cpu_reg[Y]);
+            lsb_addr = cpu.pc++;
+            msb_addr = cpu.pc++;
+            return indirect(lsb_addr, 0, 0, cpu.reg[Y]);
         default:
             return 0;
+    }
+}
+
+
+// Atualização de flags
+
+void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operand, int16_t result){
+    uint8_t update_flags = update_flags_lookup[opcode];
+
+    if(bit_test(update_flags, N)){
+        // Limpa a flag N
+        bit_clear(cpu.reg[P], N);
+        switch(opcode){
+            // Bit Test
+            case 0x24: case 0x2C:
+                if(bit_test(second_operand, BIT7)) 
+                    bit_set(cpu.reg[P], N);
+                break;                        
+            // Shift Right Logical    
+            case 0x4A: case 0x46: case 0x56:  case 0x4E:  case 0x5E: 
+                break;
+            default:
+                if(bit_test(result, BIT7)) 
+                    bit_set(cpu.reg[P], N);
+                break;        
+        }
+    }
+    if(bit_test(update_flags, V)){
+        // Limpa a flag V
+        bit_clear(cpu.reg[P], V);
+        switch(opcode){
+            // CLV - Clear Overflow Flag
+            case 0xB8:
+                break;
+            // Bit Test
+            case 0x24: case 0x2C:
+                if(bit_test(second_operand, BIT6))
+                    bit_set(cpu.reg[P], V);
+                break;
+            default:
+                if(((~(first_operand ^ second_operand)) & (first_operand ^ result)) & bit_mask(BIT7))
+                    bit_set(cpu.reg[P], V);
+                break;
+        }
+    }
+    if(bit_test(update_flags, B)){
+        // Limpa a flag B
+        bit_clear(cpu.reg[P], B);        
+        switch(opcode){
+            
+            case 0x00:
+                bit_set(cpu.reg[P], B);
+                break;
+            default:
+                break;
+        }
+    }
+    if(bit_test(update_flags, D)){
+        // Limpa a flag D
+        bit_clear(cpu.reg[P], D);  
+        switch(opcode){
+            // CLD - Clear decimal mode
+            case 0xD8:
+                break;
+            // STD - Set decimal mode    
+            case 0xF8:
+                bit_set(cpu.reg[P], D);     
+                break;
+            default:
+                break;
+        }
+    }
+    if(bit_test(update_flags, I)){
+        // Limpa a flag I
+        bit_clear(cpu.reg[P], I);
+        switch(opcode){
+            // CLI - Clear interrupt disable bit
+            case 0x58:
+                break;
+            // STI - Set interrupt disable bit
+            case 0x78:
+                bit_set(cpu.reg[P], I);
+                break;    
+            default:
+                break;
+        }
+    }
+    if(bit_test(update_flags, Z)){
+        // Limpa a flag Z
+        bit_clear(cpu.reg[P], Z);        
+        switch(opcode){
+            // Bit Test
+            case 0x24: case 0x2C:
+                if((first_operand & second_operand) == 0x00)
+                    bit_set(cpu.reg[P], Z);
+                break;
+            default:
+                if(result == 0)
+                    bit_set(cpu.reg[P], Z);
+                break;
+        }
+    }
+    if(bit_test(update_flags, C)){
+        // Limpa a flag C
+        bit_clear(cpu.reg[P], C);        
+        switch(opcode){
+            case 18:
+            // STC - Set carry flag
+                bit_set(cpu.reg[P], C);    
+                break;
+            // CLC - Clear carry flag    
+            case 38:
+                break;
+            // Shift Left Logical/Arithmetic
+            case 0x0A: case 0x06: case 0x16: case 0x0E: case 0x1E: 
+            // Rotate Left through Carry
+            case 0x2A: case 0x26: case 0x36: case 0x2E: case 0x3E:
+                if(bit_test(result, BIT7))
+                    bit_set(cpu.reg[P], C);
+                break;
+            // Shift Right Logical    
+            case 0x4A: case 0x46: case 0x56: case 0x4E: case 0x5E:
+            // Rotate Right through Carry
+            case 0x6A: case 0x66: case 0x76: case 0x6E: case 0x7E:    
+                if(bit_test(result, BIT0))
+                    bit_set(cpu.reg[p], C);
+                break;
+            // Subtract memory from accumulator with borrow
+            case 0xE9: case 0xE5: case 0xF5: case 0xED: case 0xFD: case 0xF9: case 0xE1: case 0xF1:
+            // Compare
+            case 0xC9: case 0xC5: case 0xD5: case 0xCD: case 0xDD: case 0xD9: case 0xC1: case 0xD1:
+            case 0xE0: case 0xE4: case 0xEC: case 0xC0: case 0xC4: case 0xCC:
+                if( first_operand >= second_operand)
+                    bit_set(cpu.reg[P], C);
+                break;
+            default:
+                if(bit_test(result, BIT8))
+                    bit_set(cpu.reg[P], C);
+                break;
+        }
     }
 }
 

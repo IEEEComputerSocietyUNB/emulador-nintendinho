@@ -33,12 +33,6 @@ enum CPU_REGISTER{
     P           // Processor Status Register
 };
 
-int8_t cpu_reg[N_REG];
-
-// Program Counter
-
-uint16_t PC; 
-
 // Processor Status Register (Flags)
 
 enum P_FLAGS{
@@ -52,7 +46,7 @@ enum P_FLAGS{
     N           // Negative/Sign    (0=Positive, 1=Negative)
 };
 
-// Memória interna da CPU
+// Memória RAM acessada pela CPU
 
 int8_t cpu_ram[RAM_SIZE];
 
@@ -252,6 +246,13 @@ static const int page_breaking_lookup[256] =
 
 // Opcode
 
+typedef struct{
+    int8_t reg[N_REG];        // Registradores da CPU
+    uint16_t pc;              // Program Counter
+}CPU;
+
+CPU cpu;
+
 uint8_t cpu_clock;
 uint8_t opcode;
 uint16_t addr;
@@ -262,6 +263,6 @@ uint8_t instruction_len;
 
 uint16_t cpu_addressing(uint8_t opcode);
 
-void cpu_update_flags(uint8_t opcode);
+void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operand, int16_t result);
 
 #endif
