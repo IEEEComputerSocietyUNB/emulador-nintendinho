@@ -340,11 +340,11 @@ void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operan
 
 
 
-uint8_t cpu_fetch_decode_and_execute(){
-    int8_t  first_operand, second_operand, data, imm;
+uint8_t cpu_execute(){
+    int8_t  first_operand, second_operand, data;
     int16_t result;
     uint16_t addr;
-    uint8_t opcode, cpu_clock_cycles;
+    uint8_t opcode, cpu_clock_cycles, msb_addr, lsb_addr;
 
     opcode = cpu_read_memory(cpu.pc++);
     cpu_clock_cycles = clock_cycle_lookup[opcode];
@@ -464,7 +464,6 @@ uint8_t cpu_fetch_decode_and_execute(){
             cpu.reg[S]++;
             cpu.reg[P] = cpu_read_memory(cpu.reg[S] + 0x0100)\
              | 0x20; // Protege as flags que não podem ser alteradas setando elas como "1" 
-            cpu_update_flags(opcode, 0x00, 0x00, cpu.reg[P]);
             break;       
 
         /////////////////////////////////////////////////
@@ -603,9 +602,11 @@ uint8_t cpu_fetch_decode_and_execute(){
             cpu_write_memory(addr, result);   
             cpu_update_flags(opcode, 0x00, 0x00, result);       
             break;
+
         /////////////////////////////////////////////////////////
         ///Instruções de rotação e deslocamento
         ////////////////////////////////////////////////////////      
+
         // Deslocamento lógico/aritmético pra esquerda
         // ASL
         case 0x0A:
@@ -662,6 +663,138 @@ uint8_t cpu_fetch_decode_and_execute(){
             cpu_write_memory(addr, result);
             cpu_update_flags(opcode, first_operand, 0x00, result);       
             break;
+        
+        ///////////////////////////////////////////////
+        /// Instruções de salto e de controle da CPU
+        //////////////////////////////////////////////    
+
+        // Saltos Normais e chamadas/retornos de subrotinas
+        // JMP
+        case 0x4C: case 0x6C:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu.pc = cpu_read_memory(addr);
+            break;
+        // JSR
+        case 0x20:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            cpu_write_memory(cpu.reg[S] + 0x0100, cpu.pc);
+            cpu.pc = addr;
+            break;
+        // RTI
+        case 0x40:
+            cpu.reg[S]++;
+            cpu.reg[P] = cpu_read_memory(cpu.reg[S]++ + 0x0100) | 0x20;
+            lsb_addr = cpu_read_memory(cpu.reg[S]++ + 0x0100);
+            msb_addr = cpu_read_memory(cpu.reg[S]++ + 0x0100);
+            cpu.pc = concat_address(lsb_addr, msb_addr);
+            break;
+        // RTS    
+        case 0x60:
+            cpu.reg[S]++;
+            lsb_addr = cpu_read_memory(cpu.reg[S]++ + 0x0100);
+            msb_addr = cpu_read_memory(cpu.reg[S]++ + 0x0100);            
+            cpu.pc = concat_address(lsb_addr, msb_addr) + 1;
+            break;
+        // Saltos condicionais
+        // BPL
+        case 0x10:
+            if(!bit_test(cpu.reg[P], N)){
+                cpu.pc += cpu_read_memory(cpu.pc);
+                cpu_clock_cycles++;
+            }
+            break;
+        // BMI
+        case 0x30:  
+            if(bit_test(cpu.reg[P], N)){
+                cpu.pc += cpu_read_memory(cpu.pc);
+                cpu_clock_cycles++;
+            }
+            break;
+        // BVC    
+        case 0x50:
+            if(!bit_test(cpu.reg[P], V)){
+                cpu.pc += cpu_read_memory(cpu.pc);
+                cpu_clock_cycles++;
+            }
+            break;
+        // BVS
+        case 0x70:
+            if(bit_test(cpu.reg[P], V)){
+                cpu.pc += cpu_read_memory(cpu.pc);
+                cpu_clock_cycles++;
+            }
+            break;            
+        // BCC/BLT
+        case 0x90:
+            if(!bit_test(cpu.reg[P], C)){
+                cpu.pc += cpu_read_memory(cpu.pc);
+                cpu_clock_cycles++;
+            }
+            break;        
+        // BCS/BGE
+        case 0xB0:
+            if(bit_test(cpu.reg[P], C)){
+                cpu.pc += cpu_read_memory(cpu.pc);
+                cpu_clock_cycles++;
+            }
+            break;        
+        // BNE/BZC
+        case 0xD0:
+            if(!bit_test(cpu.reg[P], Z)){
+                cpu.pc += cpu_read_memory(cpu.pc);
+                cpu_clock_cycles++;
+            }
+            break;        
+        // BEQ/BZS
+        case 0xF0:
+            if(bit_test(cpu.reg[P], Z)){
+                cpu.pc += cpu_read_memory(cpu.pc);
+                cpu_clock_cycles++;
+            }
+            break;
+        // Interrupções, Exceções, Breakpoints
+        // BRK
+        case 0x00:
+
+            break;
+
+        // Controle da CPU
+        // CLC
+        case 0x18:
+            cpu_update_flags(opcode, 0x00, 0x00, 0x00);
+            break;
+        // CLI
+        case 0x58:
+            cpu_update_flags(opcode, 0x00, 0x00, 0x00);
+            break;
+        // CLD
+        case 0xD8:
+            cpu_update_flags(opcode, 0x00, 0x00, 0x00);
+            break;
+        // CLV
+        case 0xB8:
+            cpu_update_flags(opcode, 0x00, 0x00, 0x00);
+            break;
+        // SEC
+        case 0x38:
+            cpu_update_flags(opcode, 0x00, 0x00, 0x00);
+            break;
+        // SEI
+        case 0x78:
+            cpu_update_flags(opcode, 0x00, 0x00, 0x00);
+            break;
+        // SED
+        case 0xF8:
+            cpu_update_flags(opcode, 0x00, 0x00, 0x00);
+            break;
+        // NOP
+        case 0xEA:
+            break;
+
+        //////////////////////////////////////
+        /// Instruções ilegais
+        //////////////////////////////////////
+
         default:
             break;
     }
