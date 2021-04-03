@@ -150,18 +150,17 @@ enum ADDRESSING_MODE{
 //NV_BDIZC
 
 enum UPDATE_FLAGS{
-    xxxxxxxx = 0b00000000,
-    NVxxDIZC = 0b11001111,
-    NxxxxxZx = 0b10000010,
-    NxxxxxZC = 0b10000011,
-    NVxxxxZC = 0b11000011,
-    NVxxxxZx = 0b11000010,
-    xxxxxxxC = 0b00000001,
-    xxxxxIxx = 0b00000100,
-    xxxxDxxx = 0b00001000,
-    xxxBxxxx = 0b00010000,
-    xVxxxxxx = 0b01000000,
-
+    xxxxxxxx = 0x00, // 0b00000000 
+    NVxxDIZC = 0xCF, // 0b11001111
+    NxxxxxZx = 0x82, // 0b10000010
+    NxxxxxZC = 0x83, // 0b10000011
+    NVxxxxZC = 0xC3, // 0b11000011
+    NVxxxxZx = 0xC2, // 0b11000010
+    xxxxxxxC = 0x01, // 0b00000001
+    xxxxxIxx = 0x04, // 0b00000100
+    xxxxDxxx = 0x08, // 0b00001000
+    xxxBxxxx = 0x10, // 0b00010000
+    xVxxxxxx = 0x40  // 0b01000000
 };
 
 static const enum ADDRESSING_MODE address_mode_lookup[256] =
@@ -244,7 +243,7 @@ static const int page_breaking_lookup[256] =
 /*Fx*/ 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0 
 };
 
-// Opcode
+// CPU
 
 typedef struct{
     int8_t reg[N_REG];        // Registradores da CPU
@@ -257,6 +256,6 @@ int16_t cpu_addressing(uint8_t opcode, uint8_t cpu_clock_cycles);
 
 void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operand, int16_t result);
 
-uint8_t cpu_fetch_and_execute()
+uint8_t cpu_fetch_decode_and_execute();
 
 #endif

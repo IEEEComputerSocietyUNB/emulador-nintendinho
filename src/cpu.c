@@ -23,9 +23,9 @@ enum BIT_POS{
 
 #define bit_test(word, bit_index) ((word) & ((0x01) << (bit_index)))
 
-#define bit_set(word, bit_index) ((word) | ((0x01) << (bit_index)))
+#define bit_set(word, bit_index) ((word) |= ((0x01) << (bit_index)))
 
-#define bit_clear(word, bit_index) ((word) & ((~(0x01)) << (bit_index)))
+#define bit_clear(word, bit_index) ((word) &= (~((0x01) << (bit_index))))
 
 ////////////////////////////////////////////
 /// Macros de modos de endereçamento
@@ -311,14 +311,14 @@ void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operan
             case 0x0A: case 0x06: case 0x16: case 0x0E: case 0x1E: 
             // ROL - Rotate Left through Carry
             case 0x2A: case 0x26: case 0x36: case 0x2E: case 0x3E:
-                if(bit_test(result, BIT7))
+                if(bit_test(first_operand, BIT7))
                     bit_set(cpu.reg[P], C);
                 break;
             // LSR - Shift Right Logical    
             case 0x4A: case 0x46: case 0x56: case 0x4E: case 0x5E:
             // ROR - Rotate Right through Carry
             case 0x6A: case 0x66: case 0x76: case 0x6E: case 0x7E:    
-                if(bit_test(result, BIT0))
+                if(bit_test(first_operand, BIT0))
                     bit_set(cpu.reg[P], C);
                 break;
             // SBC - Subtract memory from accumulator with borrow
@@ -341,10 +341,10 @@ void cpu_update_flags(uint8_t opcode, int8_t first_operand, int8_t second_operan
 
 
 uint8_t cpu_fetch_decode_and_execute(){
-    int8_t opcode, first_operand, second_operand, data, imm;
+    int8_t  first_operand, second_operand, data, imm;
     int16_t result;
     uint16_t addr;
-    uint8_t cpu_clock_cycles;
+    uint8_t opcode, cpu_clock_cycles;
 
     opcode = cpu_read_memory(cpu.pc++);
     cpu_clock_cycles = clock_cycle_lookup[opcode];
@@ -542,7 +542,7 @@ uint8_t cpu_fetch_decode_and_execute(){
             result = cpu.reg[A] - second_operand;
             cpu_update_flags(opcode, first_operand, second_operand, result);        
             break;
-        case 0xC5: case: 0xD5: case: 0xCD: case: 0xDD: case: 0xD9: case: 0xC1: case: 0xD1:
+        case 0xC5: case 0xD5: case 0xCD: case 0xDD: case 0xD9: case 0xC1: case 0xD1:
             first_operand = cpu.reg[A];
             addr = cpu_addressing(opcode, cpu_clock_cycles);
             second_operand = cpu_read_memory(addr);
@@ -556,7 +556,7 @@ uint8_t cpu_fetch_decode_and_execute(){
             result = cpu.reg[X] - second_operand;
             cpu_update_flags(opcode, first_operand, second_operand, result);        
             break;
-        case 0xE4: 0xEC:
+        case 0xE4: case 0xEC:
             first_operand = cpu.reg[X];
             addr = cpu_addressing(opcode, cpu_clock_cycles);
             second_operand = cpu_read_memory(addr);
@@ -570,7 +570,7 @@ uint8_t cpu_fetch_decode_and_execute(){
             result = cpu.reg[Y] - second_operand;
             cpu_update_flags(opcode, first_operand, second_operand, result);        
             break;
-        case 0xC4: 0xCC:
+        case 0xC4: case 0xCC:
             first_operand = cpu.reg[Y];
             addr = cpu_addressing(opcode, cpu_clock_cycles);
             second_operand = cpu_read_memory(addr);
@@ -579,7 +579,7 @@ uint8_t cpu_fetch_decode_and_execute(){
             break;
         // Bit Test
         // BIT
-        case 0x24: 0x2C:
+        case 0x24: case 0x2C:
             first_operand = cpu.reg[A];
             addr = cpu_addressing(opcode, cpu_clock_cycles);
             second_operand = cpu_read_memory(addr);
@@ -601,7 +601,67 @@ uint8_t cpu_fetch_decode_and_execute(){
             data = cpu_read_memory(addr);
             result = data - 1;
             cpu_write_memory(addr, result);   
-            cpu_update_flags(opcode, 0x00, 0x00, result);         
+            cpu_update_flags(opcode, 0x00, 0x00, result);       
+            break;
+        /////////////////////////////////////////////////////////
+        ///Instruções de rotação e deslocamento
+        ////////////////////////////////////////////////////////      
+        // Deslocamento lógico/aritmético pra esquerda
+        // ASL
+        case 0x0A:
+            first_operand = cpu.reg[A];
+            cpu.reg[A] = cpu.reg[A] << 1;
+            cpu_update_flags(opcode, first_operand, 0x00, cpu.reg[A]);
+            break;
+        case 0x06: case 0x16: case 0x0E: case 0x1E:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            first_operand = cpu_read_memory(addr);
+            result = first_operand << 1;
+            cpu_write_memory(addr, result);
+            cpu_update_flags(opcode, first_operand, 0x00, result);        
+            break;
+        // Deslocamento lógico pra direita
+        // LSR
+        case 0x4A:
+            first_operand = cpu.reg[A];
+            cpu.reg[A] = (uint8_t)cpu.reg[A] >> 1;
+            cpu_update_flags(opcode, first_operand, 0x00, cpu.reg[A]);        
+            break;
+        case 0x46: case 0x56: case 0x4E: case 0x5E:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            first_operand = cpu_read_memory(addr);
+            result = (uint8_t)first_operand >> 1;
+            cpu_write_memory(addr, result);
+            cpu_update_flags(opcode, first_operand, 0x00, result);         
+            break;
+        // Rotação pra esquerda com carry
+        // ROL
+        case 0x2A:
+            first_operand = cpu.reg[A];
+            cpu.reg[A] = (cpu.reg[A] << 1) | bit_test(cpu.reg[P], C);
+            cpu_update_flags(opcode, first_operand, 0x00, cpu.reg[A]);        
+            break;
+        case 0x26: case 0x36: case 0x2E: case 0x3E:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            first_operand = cpu_read_memory(addr);
+            result = (first_operand << 1) | bit_test(cpu.reg[P], C);
+            cpu_write_memory(addr, result);
+            cpu_update_flags(opcode, first_operand, 0x00, result);              
+            break;
+        // Rotação pra direita com carry
+        // ROR
+        case 0x6A:
+            first_operand = cpu.reg[A];
+            cpu.reg[A] = (cpu.reg[A] >> 1) | (bit_test(cpu.reg[P], C) << BIT7);
+            cpu_update_flags(opcode, first_operand, 0x00, cpu.reg[A]);            
+            break;
+        case 0x66: case 0x76: case 0x6E: case 0x7E:
+            addr = cpu_addressing(opcode, cpu_clock_cycles);
+            first_operand = cpu_read_memory(addr);
+            result = (first_operand >> 1) | (bit_test(cpu.reg[P], C) << BIT7);
+            cpu_write_memory(addr, result);
+            cpu_update_flags(opcode, first_operand, 0x00, result);       
+            break;
         default:
             break;
     }
